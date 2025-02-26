@@ -2,11 +2,40 @@ import random
 import json
 import hikari
 import lightbulb
-from pathlib import Path
 import os
+import aiohttp
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+
+LASTFM_API_KEY = os.getenv("LASTFM_API_KEY")  # Add your Last.fm API key to your .env file
+
+async def fetch_album_description(artist: str, album: str) -> str:
+    url = "http://ws.audioscrobbler.com/2.0/"
+    params = {
+        "method": "album.getinfo",
+        "api_key": LASTFM_API_KEY,
+        "artist": artist,
+        "album": album,
+        "format": "json"
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params=params) as response:
+            if response.status == 200:
+                data = await response.json()
+                description = data.get("album", {}).get("wiki", {}).get("summary", "No description available.")
+                # Replace HTML anchor tag with Discord markdown link
+                if '<a href="' in description:
+                    start_link = description.find('<a href="') + 9
+                    end_link = description.find('">', start_link)
+                    url = description[start_link:end_link]
+                    start_text = end_link + 2
+                    end_text = description.find('</a>', start_text)
+                    text = description[start_text:end_text]
+                    description = description[:start_link-9] + f"[{text}]({url})" + description[end_text+4:]
+                return description
+            return "No description available."
 
 def load_albums(artist: str):
     file_path = Path(__file__).parent / "albums" / f"{artist}.json"
@@ -33,10 +62,11 @@ async def random_album(ctx: lightbulb.Context) -> None:
     artist_name, albums = load_albums(artist)
     if albums:
         album = random.choice(albums)
-        await ctx.respond(f"🎵{artist_name}: {album}🎵")
+        description = await fetch_album_description(artist_name, album)
+        await ctx.respond(f"🎵{artist_name}: {album}🎵\n-# {description}")
     else:
         await ctx.respond(f"No albums found for {ctx.options.artist}.")
-
+    
 @bot.listen(hikari.InteractionCreateEvent)
 async def on_interaction(event: hikari.InteractionCreateEvent) -> None:
     interaction = event.interaction
