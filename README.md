@@ -18,7 +18,7 @@ Random Album Bot is a Discord bot that fetches a random album from a specified a
 1. Clone the repository:
 
     ```sh
-    git clone https://github.com/yourusername/randomalbumbot.git
+    git clone https://github.com/D-abco/randomalbumbot.git
     cd randomalbumbot
     ```
 
@@ -35,14 +35,14 @@ Random Album Bot is a Discord bot that fetches a random album from a specified a
     pip install -r requirements.txt
     ```
 
-4. Create a [.env](http://_vscodecontentref_/0) file in the project directory and add your Discord bot token and Last.fm API key:
+4. Create a .env file in the project directory and add your Discord bot token and Last.fm API key:
 
     ```env
     BOT_TOKEN=your_discord_bot_token
     LASTFM_API_KEY=your_lastfm_api_key #optional
     ```
 
-5. Create a directory named [albums](http://_vscodecontentref_/1) in the project directory and add JSON files for each artist. Each JSON file should be named after the artist and contain the following structure:
+5. Navigate to the folder named `albums` in the project directory and add JSON files for each artist. Each JSON file should be named after the artist and contain the following structure:
 
     ```json
     {
