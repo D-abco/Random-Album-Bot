@@ -1,12 +1,13 @@
-import random
+import os
+import re
 import json
+import random
+from pathlib import Path
+
+import aiohttp
 import hikari
 import lightbulb
-import os
-import aiohttp
-from pathlib import Path
 from dotenv import load_dotenv
-import re
 
 # Load environment variables from .env file
 load_dotenv()
