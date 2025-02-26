@@ -11,7 +11,25 @@ load_dotenv()
 
 LASTFM_API_KEY = os.getenv("LASTFM_API_KEY")  # Add your Last.fm API key to your .env file
 
+async def is_lastfm_api_key_valid(api_key: str) -> bool:
+    url = "http://ws.audioscrobbler.com/2.0/"
+    params = {
+        "method": "album.getinfo",
+        "api_key": api_key,
+        "artist": "test",
+        "album": "test",
+        "format": "json"
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params=params) as response:
+            if response.status == 403:  # Forbidden status indicates invalid API key
+                return False
+            return True
+
 async def fetch_album_description(artist: str, album: str) -> str:
+    if not LASTFM_API_KEY or not await is_lastfm_api_key_valid(LASTFM_API_KEY):
+        return None
+    
     url = "http://ws.audioscrobbler.com/2.0/"
     params = {
         "method": "album.getinfo",
@@ -24,18 +42,19 @@ async def fetch_album_description(artist: str, album: str) -> str:
         async with session.get(url, params=params) as response:
             if response.status == 200:
                 data = await response.json()
-                description = data.get("album", {}).get("wiki", {}).get("summary", "No description available.")
-                # Replace HTML anchor tag with Discord markdown link
-                if '<a href="' in description:
-                    start_link = description.find('<a href="') + 9
-                    end_link = description.find('">', start_link)
-                    url = description[start_link:end_link]
-                    start_text = end_link + 2
-                    end_text = description.find('</a>', start_text)
-                    text = description[start_text:end_text]
-                    description = description[:start_link-9] + f"[{text}]({url})" + description[end_text+4:]
-                return description
-            return "No description available."
+                description = data.get("album", {}).get("wiki", {}).get("summary")
+                if description:
+                    # Replace HTML anchor tag with Discord markdown link
+                    if '<a href="' in description:
+                        start_link = description.find('<a href="') + 9
+                        end_link = description.find('">', start_link)
+                        url = description[start_link:end_link]
+                        start_text = end_link + 2
+                        end_text = description.find('</a>', start_text)
+                        text = description[start_text:end_text]
+                        description = description[:start_link-9] + f"[{text}]({url})" + description[end_text+4:]
+                    return description
+            return None
 
 def load_albums(artist: str):
     file_path = Path(__file__).parent / "albums" / f"{artist}.json"
@@ -63,7 +82,10 @@ async def random_album(ctx: lightbulb.Context) -> None:
     if albums:
         album = random.choice(albums)
         description = await fetch_album_description(artist_name, album)
-        await ctx.respond(f"🎵{artist_name}: {album}🎵\n-# {description}")
+        if description:
+            await ctx.respond(f"🎵{artist_name}: {album}🎵\n-# {description}")
+        else:
+            await ctx.respond(f"🎵{artist_name}: {album}🎵")
     else:
         await ctx.respond(f"No albums found for {ctx.options.artist}.")
     
