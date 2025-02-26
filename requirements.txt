@@ -1,3 +1,4 @@
-hikari
-lightbulb
-python-dotenv
+aiohttp==3.8.1
+hikari==2.0.0.dev105
+lightbulb==2.2.4
+python-dotenv==0.19.2

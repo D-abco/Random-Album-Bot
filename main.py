@@ -6,11 +6,15 @@ import os
 import aiohttp
 from pathlib import Path
 from dotenv import load_dotenv
+import re
 
+# Load environment variables from .env file
 load_dotenv()
 
-LASTFM_API_KEY = os.getenv("LASTFM_API_KEY")  # Add your Last.fm API key to your .env file
+# Get the Last.fm API key from environment variables
+LASTFM_API_KEY = os.getenv("LASTFM_API_KEY")
 
+# Function to check if the Last.fm API key is valid
 async def is_lastfm_api_key_valid(api_key: str) -> bool:
     url = "http://ws.audioscrobbler.com/2.0/"
     params = {
@@ -22,11 +26,14 @@ async def is_lastfm_api_key_valid(api_key: str) -> bool:
     }
     async with aiohttp.ClientSession() as session:
         async with session.get(url, params=params) as response:
-            if response.status == 403:  # Forbidden status indicates invalid API key
+            # Return False if the API key is invalid
+            if response.status == 403:
                 return False
             return True
 
+# Function to fetch the album description from Last.fm
 async def fetch_album_description(artist: str, album: str) -> str:
+    # Check if the Last.fm API key is valid
     if not LASTFM_API_KEY or not await is_lastfm_api_key_valid(LASTFM_API_KEY):
         return None
     
@@ -56,28 +63,45 @@ async def fetch_album_description(artist: str, album: str) -> str:
                     return description
             return None
 
+# Function to normalize artist names by removing spaces and converting to lowercase
+def normalize_artist_name(artist: str) -> str:
+    return artist.lower().replace(" ", "")
+
+# Function to load albums for a given artist from the JSON file
 def load_albums(artist: str):
-    file_path = Path(__file__).parent / "albums" / f"{artist}.json"
+    albums_path = Path(__file__).parent / "albums"
+    artist_to_filename = {normalize_artist_name(file.stem): file.stem for file in albums_path.glob("*.json")}
+    artist_key = normalize_artist_name(artist)
+    file_path = albums_path / f"{artist_to_filename.get(artist_key, artist_key)}.json"
     if file_path.exists():
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             return data["artist"], data["albums"] 
     return None, [] 
 
+# Function to get a list of all artists from the JSON files
 def get_artists():
-    albums_dir = Path(__file__).parent / "albums"
-    return [file.stem for file in albums_dir.glob("*.json")]
+    albums_path = Path(__file__).parent / "albums"
+    artists = []
+    for file in albums_path.glob("*.json"):
+        with open(file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            artists.append(data["artist"])
+    return artists
 
+# Get the Discord bot token from environment variables
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
+# Initialize the bot with the specified token and intents
 bot = lightbulb.BotApp(token=BOT_TOKEN, intents=hikari.Intents.GUILD_MESSAGES)
 
+# Define the /randomalbum command
 @bot.command()
 @lightbulb.option("artist", "The artist to get a random album from", required=True, autocomplete=True)
 @lightbulb.command("randomalbum", "Get a random album from a specified artist!")
 @lightbulb.implements(lightbulb.SlashCommand)
 async def random_album(ctx: lightbulb.Context) -> None:
-    artist = ctx.options.artist.lower().replace(" ", "_")
+    artist = ctx.options.artist
     artist_name, albums = load_albums(artist)
     if albums:
         album = random.choice(albums)
@@ -89,6 +113,7 @@ async def random_album(ctx: lightbulb.Context) -> None:
     else:
         await ctx.respond(f"No albums found for {ctx.options.artist}.")
     
+# Handle autocomplete interactions for the /randomalbum command
 @bot.listen(hikari.InteractionCreateEvent)
 async def on_interaction(event: hikari.InteractionCreateEvent) -> None:
     interaction = event.interaction
@@ -102,4 +127,5 @@ async def on_interaction(event: hikari.InteractionCreateEvent) -> None:
                     choices = [hikari.CommandChoice(name=artist, value=artist) for artist in suggestions[:5]]
                     await interaction.create_response(choices=choices)
 
+# Run the bot
 bot.run()

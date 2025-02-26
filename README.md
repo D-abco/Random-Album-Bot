@@ -6,13 +6,12 @@ Random Album Bot is a Discord bot that fetches a random album from a specified a
 
 - Fetch a random album from a specified artist.
 - Provide a description of the album using the Last.fm API.
-- Replace HTML anchor tags with Discord markdown links.
 
 ## Prerequisites
 
 - Python 3.7+
 - A Discord bot token
-- A Last.fm API key
+- A Last.fm API key (optional)
 
 ## Installation
 
@@ -40,7 +39,7 @@ Random Album Bot is a Discord bot that fetches a random album from a specified a
 
     ```env
     BOT_TOKEN=your_discord_bot_token
-    LASTFM_API_KEY=your_lastfm_api_key
+    LASTFM_API_KEY=your_lastfm_api_key #optional
     ```
 
 5. Create a directory named [albums](http://_vscodecontentref_/1) in the project directory and add JSON files for each artist. Each JSON file should be named after the artist and contain the following structure:
@@ -60,7 +59,7 @@ Random Album Bot is a Discord bot that fetches a random album from a specified a
     python main.py
     ```
 
-2. Invite the bot to your Discord server using the OAuth2 URL with the `applications.commands` and [bot](http://_vscodecontentref_/2) scopes.
+2. Invite the bot to your Discord server using the OAuth2 URL with the `applications.commands` and `bot` scopes.
 
 3. Use the `/randomalbum` command in your Discord server to fetch a random album from a specified artist.
 
